@@ -1,0 +1,204 @@
+{
+	"name": "df_gold_hechos_llamadas",
+	"properties": {
+		"folder": {
+			"name": "GOLD"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_sql_silver_llamadas",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_dim_tipo",
+						"type": "DatasetReference"
+					},
+					"name": "dimTipo"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_dim_origen",
+						"type": "DatasetReference"
+					},
+					"name": "dimOrigen"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_dim_destino",
+						"type": "DatasetReference"
+					},
+					"name": "dimDestino"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_dim_fecha",
+						"type": "DatasetReference"
+					},
+					"name": "dimFecha"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_dim_hora",
+						"type": "DatasetReference"
+					},
+					"name": "dimHora"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_hechos_llamadas",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "lookup1"
+				},
+				{
+					"name": "lookup2"
+				},
+				{
+					"name": "lookup3"
+				},
+				{
+					"name": "lookup4"
+				},
+				{
+					"name": "lookup5"
+				},
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          tipo as string,",
+				"          numero_origen as string,",
+				"          numero_destino as string,",
+				"          fecha as date,",
+				"          hora as timestamp,",
+				"          duracion as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"source(output(",
+				"          id_tipo as integer,",
+				"          tipo as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'select id_tipo,tipo from GOLD.dim_tipo',",
+				"     format: 'query') ~> dimTipo",
+				"source(output(",
+				"          id_origen as integer,",
+				"          numero_origen as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'select id_origen,numero_origen from GOLD.dim_origen',",
+				"     format: 'query') ~> dimOrigen",
+				"source(output(",
+				"          id_destino as integer,",
+				"          numero_destino as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'select id_destino,numero_destino from GOLD.dim_destino',",
+				"     format: 'query') ~> dimDestino",
+				"source(output(",
+				"          id_fecha as integer,",
+				"          fecha as date,",
+				"          {año} as integer,",
+				"          mes as integer,",
+				"          mes_texto as string,",
+				"          dia_texto as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'select id_fecha,fecha from GOLD.dim_fecha',",
+				"     format: 'query') ~> dimFecha",
+				"source(output(",
+				"          id_hora as integer,",
+				"          hora as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'select id_hora,hora from GOLD.dim_hora',",
+				"     format: 'query') ~> dimHora",
+				"source1, dimTipo lookup(source1@tipo == dimTipo@tipo,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup1",
+				"lookup1, dimOrigen lookup(source1@numero_origen == dimOrigen@numero_origen,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup2",
+				"lookup2, dimDestino lookup(source1@numero_destino == dimDestino@numero_destino,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup3",
+				"lookup3, dimFecha lookup(source1@fecha == dimFecha@fecha,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup4",
+				"lookup4, dimHora lookup(source1@hora == dimHora@hora,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup5",
+				"lookup5 select(mapColumn(",
+				"          duracion,",
+				"          id_tipo,",
+				"          id_origen,",
+				"          id_destino,",
+				"          id_fecha,",
+				"          id_hora",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id_llamadas as integer,",
+				"          duracion as integer,",
+				"          id_tipo as integer,",
+				"          id_origen as integer,",
+				"          id_destino as integer,",
+				"          id_fecha as integer,",
+				"          id_hora as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          duracion,",
+				"          id_tipo,",
+				"          id_origen,",
+				"          id_destino,",
+				"          id_fecha,",
+				"          id_hora",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
