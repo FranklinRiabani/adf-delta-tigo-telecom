@@ -14,7 +14,7 @@
 			"location": {
 				"type": "AzureBlobStorageLocation",
 				"fileName": "llamadas.csv",
-				"container": "raw-entel"
+				"container": "raw-tigo"
 			},
 			"columnDelimiter": ",",
 			"escapeChar": "\\",
